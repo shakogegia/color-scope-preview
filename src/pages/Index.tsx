@@ -3,77 +3,44 @@ import React, { useState, useEffect } from 'react';
 import ColorInput from '@/components/ColorInput';
 import ColorPreview from '@/components/ColorPreview';
 import ColorValue from '@/components/ColorValue';
+import Color from 'colorjs.io';
 
 const Index = () => {
   const [hexColor, setHexColor] = useState('#0088FF');
   const [p3Value, setP3Value] = useState('');
   const [oklchValue, setOklchValue] = useState('');
 
-  // Helper function to convert hex to RGB
-  const hexToRgb = (hex: string) => {
-    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-    const formattedHex = hex.replace(shorthandRegex, (_, r, g, b) => {
-      return r + r + g + g + b + b;
-    });
-  
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(formattedHex);
-    return result
-      ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16)
-        }
-      : null;
-  };
-
-  // Convert hex to P3 value string
+  // Convert hex to P3 value string using ColorJS
   const calculateP3 = (hex: string) => {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return 'color(display-p3 0 0 0)';
-    
-    const r = (rgb.r / 255).toFixed(3);
-    const g = (rgb.g / 255).toFixed(3);
-    const b = (rgb.b / 255).toFixed(3);
-    
-    return `color(display-p3 ${r} ${g} ${b})`;
+    try {
+      const color = new Color(hex);
+      const p3 = color.to("p3");
+      const coords = [
+        p3.coords[0].toFixed(3),
+        p3.coords[1].toFixed(3),
+        p3.coords[2].toFixed(3)
+      ];
+      return `color(display-p3 ${coords[0]} ${coords[1]} ${coords[2]})`;
+    } catch (e) {
+      console.error('P3 calculation error:', e);
+      return 'color(display-p3 0 0 0)';
+    }
   };
 
-  // Convert hex to OKLCH value string
+  // Convert hex to OKLCH value string using ColorJS
   const calculateOklch = (hex: string) => {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return 'oklch(0.5 0 0)';
-    
-    // This is a simplified conversion
-    const r = rgb.r / 255;
-    const g = rgb.g / 255;
-    const b = rgb.b / 255;
-    
-    // Calculate approximate lightness
-    const lightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    
-    // Calculate approximate chroma
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const chroma = max === 0 ? 0 : (max - min) / max;
-    
-    // Calculate approximate hue
-    let hue = 0;
-    if (max === min) {
-      hue = 0;
-    } else if (max === r) {
-      hue = ((g - b) / (max - min) + (g < b ? 6 : 0)) * 60;
-    } else if (max === g) {
-      hue = ((b - r) / (max - min) + 2) * 60;
-    } else {
-      hue = ((r - g) / (max - min) + 4) * 60;
+    try {
+      const oklch = new Color(hex).to("oklch");
+      const roundedCoords = [
+        oklch.coords[0].toFixed(3),
+        oklch.coords[1].toFixed(3),
+        oklch.coords[2].toFixed(1)
+      ];
+      return `oklch(${roundedCoords[0]} ${roundedCoords[1]} ${roundedCoords[2]})`;
+    } catch (e) {
+      console.error('OKLCH calculation error:', e);
+      return 'oklch(0.5 0 0)';
     }
-    
-    // Scale values for OKLCH
-    const scaledLight = (lightness * 0.9 + 0.05).toFixed(3);
-    const scaledChroma = (chroma * 0.15).toFixed(3);
-    const scaledHue = hue.toFixed(1);
-    
-    return `oklch(${scaledLight} ${scaledChroma} ${scaledHue})`;
   };
 
   // Update color values when hex changes
