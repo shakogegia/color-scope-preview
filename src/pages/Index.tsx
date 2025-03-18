@@ -10,7 +10,7 @@ const Index = () => {
   const [p3Value, setP3Value] = useState('');
   const [oklchValue, setOklchValue] = useState('');
 
-  // Convert hex to P3 value string using ColorJS
+  // Convert hex to P3 value string using ColorJS properly
   const calculateP3 = (hex: string) => {
     try {
       const color = new Color(hex);

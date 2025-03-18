@@ -33,10 +33,11 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
     }
   };
 
-  // Convert hex to P3 color space
+  // Convert hex to P3 color space using Color.js properly
   const hexToP3 = (hex: string): string => {
     try {
       const color = new Color(hex);
+      // Convert to P3 color space
       const p3 = color.to("p3");
       
       // For P3, we want to push the color to the edges of the gamut
@@ -45,6 +46,7 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
         p3.coords[1] = Math.min(p3.coords[1] * 1.2, 1);
       }
       
+      // Format the P3 coordinates
       return `${p3.coords[0].toFixed(3)} ${p3.coords[1].toFixed(3)} ${p3.coords[2].toFixed(3)}`;
     } catch (e) {
       console.error('P3 conversion error:', e);
@@ -86,7 +88,7 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
         : srgbColor.to("oklch");
       
       // Check if the color is out of sRGB gamut
-      const isOutOfGamut = !srgbColor.inGamut();
+      const isOutOfGamut = !srgbColor.inGamut("srgb");
       
       if (isOutOfGamut) {
         return (
