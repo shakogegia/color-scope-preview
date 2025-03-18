@@ -38,6 +38,13 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
     try {
       const color = new Color(hex);
       const p3 = color.to("p3");
+      
+      // For P3, we want to push the color to the edges of the gamut
+      if (colorSpace === 'P3') {
+        // Boost saturation for P3 to show its wider gamut
+        p3.coords[1] = Math.min(p3.coords[1] * 1.2, 1);
+      }
+      
       return `${p3.coords[0].toFixed(3)} ${p3.coords[1].toFixed(3)} ${p3.coords[2].toFixed(3)}`;
     } catch (e) {
       console.error('P3 conversion error:', e);
@@ -49,6 +56,13 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
   const hexToOklch = (hex: string): string => {
     try {
       const oklch = new Color(hex).to("oklch");
+      
+      // For OKLCH, we might adjust lightness or chroma to show its perceptual properties
+      if (colorSpace === 'OKLCH') {
+        // Boost chroma/saturation for OKLCH to show its perceptual advantages
+        oklch.coords[1] = Math.min(oklch.coords[1] * 1.15, 0.4);
+      }
+      
       const roundedCoords = [
         oklch.coords[0].toFixed(3),
         oklch.coords[1].toFixed(3),
@@ -61,17 +75,49 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
     }
   };
 
+  // Add an overlay with gamut indication
+  const renderGamutOverlay = () => {
+    if (colorSpace === 'HEX') return null;
+    
+    try {
+      const srgbColor = new Color(color);
+      const targetColor = colorSpace === 'P3' 
+        ? srgbColor.to("p3") 
+        : srgbColor.to("oklch");
+      
+      // Check if the color is out of sRGB gamut
+      const isOutOfGamut = !srgbColor.inGamut();
+      
+      if (isOutOfGamut) {
+        return (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-xs font-bold text-white bg-black/50 px-2 py-1 rounded-full">
+              Extended Gamut
+            </span>
+          </div>
+        );
+      }
+    } catch (e) {
+      console.error('Gamut check error:', e);
+    }
+    
+    return null;
+  };
+
   return (
     <div className="space-y-2 w-full">
       <div className="color-label">{colorSpace}</div>
-      <div 
-        className={cn("color-preview animate-fade-in", className)}
-        style={{ 
-          backgroundColor: getColorValue(),
-          transition: 'background-color 0.4s ease-out'
-        }}
-        aria-label={`${colorSpace} color preview`}
-      />
+      <div className="relative">
+        <div 
+          className={cn("color-preview animate-fade-in", className)}
+          style={{ 
+            backgroundColor: getColorValue(),
+            transition: 'background-color 0.4s ease-out'
+          }}
+          aria-label={`${colorSpace} color preview`}
+        />
+        {renderGamutOverlay()}
+      </div>
     </div>
   );
 };
